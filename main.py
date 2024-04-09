@@ -1,6 +1,6 @@
-from typing import Optional, List
+from typing import Optional, List, Annotated
 from dotenv import load_dotenv
-from fastapi import FastAPI, Body, HTTPException, status
+from fastapi import FastAPI, Body, HTTPException, status, Query
 from fastapi.responses import Response
 from pydantic import ConfigDict, BaseModel, Field
 from pydantic.functional_validators import BeforeValidator
@@ -105,8 +105,31 @@ async def create_student(student: StudentModel = Body(...)):
     response_model=StudentCollection,
     response_model_by_alias=False,
 )
-async def list_students():
-    return StudentCollection(data=await student_collection.find().to_list(1000))
+async def list_students(countryQuery: Annotated[str | None, Query(alias="Country")] = None, ageQuery: Annotated[int | None, Query(alias="Age")] = None):
+    students = await student_collection.find().to_list(1000)
+    filtered_students = []
+
+    if ageQuery is not None and countryQuery is not None:
+        for student in students:
+            if student['age'] >= ageQuery and student['address']['country'] == countryQuery:
+                filtered_students.append(student)
+
+    elif ageQuery is not None:
+        for student in students:
+            if student['age'] >= ageQuery:
+                filtered_students.append(student)
+    
+    elif countryQuery is not None:
+        for student in students:
+            if student['address']['country'] == countryQuery:
+                filtered_students.append(student)
+    
+    else: return StudentCollection(data=students)
+    
+    return StudentCollection(data=filtered_students)
+
+    
+
 
 # GET request to find and return a student with a given id
 @app.get(
