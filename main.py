@@ -83,24 +83,23 @@ class StudentCollection(BaseModel):
 # APIs
 # POST request to create student entry in db
 @app.post(
-    "/students/",
+    "/students",
     response_description="Add new student",
-    response_model=StudentModel,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_student(student: StudentModel = Body(...)):
+async def create_students(student: StudentModel = Body(...)):
     new_student = await student_collection.insert_one(
         student.model_dump(by_alias=True, exclude=["id"])
     )
     created_student = await student_collection.find_one(
         {"_id": new_student.inserted_id}
     )
-    return created_student
+    return {"id": str(created_student["_id"])}
 
 # GET request to get list of all students or list of students with applied filters like country or age
 @app.get(
-    "/students/",
+    "/students",
     response_description="List all students",
     response_model=StudentCollection,
     response_model_by_alias=False,
@@ -186,5 +185,4 @@ async def delete_student(id: str):
 
     if delete_result.deleted_count == 1:
         return {}
-
     raise HTTPException(status_code=404, detail=f"Student {id} not found")
